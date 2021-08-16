@@ -1,0 +1,27 @@
+<launch>
+  <arg name="screen_calibration_request_srv_topic" default="/smart_home/screen_calibration_requests" />
+  <arg name="screen_calibration_set_homography_points_srv_topic" default="/smart_home/screen_calibration_homography_points" />
+  <arg name="cap_image_raw_sub_topic" default="/rgb/image_raw" />
+  <arg name="cap_peak_left_pub_topic" default="/smart_home/color_peak_left" />
+  <arg name="cap_peak_right_pub_topic" default="/smart_home/color_peak_right" />
+  <arg name="cap_peaks_telem_pub_topic" default="/smart_home/color_peaks_telem" />
+
+  <node
+    name="OpenNI"
+    pkg="openni_camera"
+    type="openni_node"
+    output="screen"
+    required="true" />
+  <node
+    name="ScreenColorPeaksManager"
+    pkg="smart_home_scc"
+    type="ScreenColorPeaksNode"
+    output="screen"
+    required="true"
+    args="$(arg screen_calibration_request_srv_topic)
+		      $(arg screen_calibration_set_homography_points_srv_topic)
+		      $(arg cap_image_raw_sub_topic)
+		      $(arg cap_peak_left_pub_topic)
+          $(arg cap_peak_right_pub_topic)
+          $(arg cap_peaks_telem_pub_topic)" />
+</launch>

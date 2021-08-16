@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<package format="2">
+	<name>smart_home_scc</name>
+	<version>0.0.1</version>
+	<description>The screen color coordinator controllers for the smart home.</description>
+
+	<maintainer email="rnvandemark@gmail.com">Nick Vandemark</maintainer>
+	<license>Do_Whatever_You_Want</license>
+
+	<buildtool_depend>catkin</buildtool_depend>
+
+	<build_depend>OpenCv</build_depend>
+
+	<build_depend>roscpp</build_depend>
+	<build_depend>std_msgs</build_depend>
+	<build_depend>sensor_msgs</build_depend>
+	<build_depend>cv_bridge</build_depend>
+	<build_depend>image_transport</build_depend>
+	<build_depend>smart_home_msgs</build_depend>
+	<build_export_depend>roscpp</build_export_depend>
+	<build_export_depend>std_msgs</build_export_depend>
+	<build_export_depend>sensor_msgs</build_export_depend>
+	<build_export_depend>cv_bridge</build_export_depend>
+	<build_export_depend>image_transport</build_export_depend>
+	<build_export_depend>smart_home_msgs</build_export_depend>
+	<exec_depend>roscpp</exec_depend>
+	<exec_depend>std_msgs</exec_depend>
+	<exec_depend>sensor_msgs</exec_depend>
+	<exec_depend>cv_bridge</exec_depend>
+	<exec_depend>image_transport</exec_depend>
+	<exec_depend>smart_home_msgs</exec_depend>
+</package>
