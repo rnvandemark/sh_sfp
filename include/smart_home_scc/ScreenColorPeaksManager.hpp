@@ -6,10 +6,10 @@
 #include <ros/ros.h>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/Image.h>
-#include <smart_home_msgs/Color.h>
-#include <smart_home_msgs/ColorPeaksTelem.h>
-#include <smart_home_msgs/RequestScreenCalibration.h>
-#include <smart_home_msgs/SetScreenCalibrationPointsOfHomography.h>
+#include <smart_home_common_msgs/Color.h>
+#include <smart_home_common_msgs/ColorPeaksTelem.h>
+#include <smart_home_common_msgs/RequestScreenCalibration.h>
+#include <smart_home_common_msgs/SetScreenCalibrationPointsOfHomography.h>
 
 namespace smart_home {
 
@@ -26,7 +26,7 @@ protected:
 	std::queue<unsigned char> queue_b;
 
 public:
-	void push_and_eval(unsigned char r, unsigned char g, unsigned char b, smart_home_msgs::ColorPtr& color);
+	void push_and_eval(unsigned char r, unsigned char g, unsigned char b, smart_home_common_msgs::ColorPtr& color);
 };
 
 class ScreenManager
@@ -46,9 +46,9 @@ protected:
 	ros::Publisher color_peak_right_pub;
 	ros::Publisher color_peaks_telem_pub;
 
-	smart_home_msgs::ColorPtr color_peak_left_msg;
-	smart_home_msgs::ColorPtr color_peak_right_msg;
-	smart_home_msgs::ColorPeaksTelemPtr color_peaks_telem_msg;
+	smart_home_common_msgs::ColorPtr color_peak_left_msg;
+	smart_home_common_msgs::ColorPtr color_peak_right_msg;
+	smart_home_common_msgs::ColorPeaksTelemPtr color_peaks_telem_msg;
 
 	cv_bridge::CvImagePtr last_received_frame;
 
@@ -68,12 +68,12 @@ public:
 		std::string color_peaks_telem_pub_topic);
 
 	bool screen_calibration_request_callback(
-		smart_home_msgs::RequestScreenCalibration::Request& req,
-		smart_home_msgs::RequestScreenCalibration::Response& res);
+		smart_home_common_msgs::RequestScreenCalibration::Request& req,
+		smart_home_common_msgs::RequestScreenCalibration::Response& res);
 
 	bool screen_calibration_set_homography_points_callback(
-		smart_home_msgs::SetScreenCalibrationPointsOfHomography::Request& req,
-		smart_home_msgs::SetScreenCalibrationPointsOfHomography::Response& res);
+		smart_home_common_msgs::SetScreenCalibrationPointsOfHomography::Request& req,
+		smart_home_common_msgs::SetScreenCalibrationPointsOfHomography::Response& res);
 
 	void cap_image_raw_callback(const sensor_msgs::ImageConstPtr& msg);
 };

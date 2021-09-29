@@ -1,7 +1,7 @@
 #include "smart_home_scc/ScreenColorPeaksManager.hpp"
 
 #include <sensor_msgs/image_encodings.h>
-#include <smart_home_msgs/Point.h>
+#include <smart_home_common_msgs/Point.h>
 #include <opencv2/photo.hpp>
 #include <opencv2/calib3d.hpp>
 
@@ -66,7 +66,7 @@ const std::vector<cv::Point2f> ScreenManager::WORLD_PLANE = {
 };
 const cv::Size ScreenManager::WORLD_SIZE = cv::Size(WORLD_WIDTH, WORLD_HEIGHT);
 
-void ColorPeakWindow::push_and_eval(unsigned char r, unsigned char g, unsigned char b, smart_home_msgs::ColorPtr& color)
+void ColorPeakWindow::push_and_eval(unsigned char r, unsigned char g, unsigned char b, smart_home_common_msgs::ColorPtr& color)
 {
 	total_r += static_cast<unsigned int>(r);
 	total_g += static_cast<unsigned int>(g);
@@ -99,9 +99,9 @@ ScreenManager::ScreenManager(
 	std::string color_peak_left_pub_topic,
 	std::string color_peak_right_pub_topic,
 	std::string color_peaks_telem_pub_topic) :
-		color_peak_left_msg(new smart_home_msgs::Color),
-		color_peak_right_msg(new smart_home_msgs::Color),
-		color_peaks_telem_msg(new smart_home_msgs::ColorPeaksTelem),
+		color_peak_left_msg(new smart_home_common_msgs::Color),
+		color_peak_right_msg(new smart_home_common_msgs::Color),
+		color_peaks_telem_msg(new smart_home_common_msgs::ColorPeaksTelem),
 		last_received_frame(nullptr),
 		homog_set(false),
 		homog(),
@@ -124,15 +124,15 @@ ScreenManager::ScreenManager(
 		&smart_home::ScreenManager::cap_image_raw_callback,
 		this
 	);
-	color_peak_left_pub = nh.advertise<smart_home_msgs::Color>(
+	color_peak_left_pub = nh.advertise<smart_home_common_msgs::Color>(
 		color_peak_left_pub_topic,
 		1
 	);
-	color_peak_right_pub = nh.advertise<smart_home_msgs::Color>(
+	color_peak_right_pub = nh.advertise<smart_home_common_msgs::Color>(
 		color_peak_right_pub_topic,
 		1
 	);
-	color_peaks_telem_pub = nh.advertise<smart_home_msgs::ColorPeaksTelem>(
+	color_peaks_telem_pub = nh.advertise<smart_home_common_msgs::ColorPeaksTelem>(
 		color_peaks_telem_pub_topic,
 		1
 	);
@@ -145,8 +145,8 @@ ScreenManager::ScreenManager(
 }
 
 bool ScreenManager::screen_calibration_request_callback(
-	smart_home_msgs::RequestScreenCalibration::Request& req,
-	smart_home_msgs::RequestScreenCalibration::Response& res)
+	smart_home_common_msgs::RequestScreenCalibration::Request& req,
+	smart_home_common_msgs::RequestScreenCalibration::Response& res)
 {
 	bool rc = false;
 	cv_bridge::CvImage cv_img_denoised, cv_img_gray, cv_img_blur, cv_img_featin, cv_img_marked;
@@ -191,7 +191,7 @@ bool ScreenManager::screen_calibration_request_callback(
 	{
 		int x = static_cast<int>(iter->x), y = static_cast<int>(iter->y);
 		cv::circle(cv_img_marked.image, cv::Point(x,y), 5, CV_RGB(0,255,0));
-		smart_home_msgs::Point pt;
+		smart_home_common_msgs::Point pt;
 		pt.x = x;
 		pt.y = y;
 		res.corner_positions.push_back(pt);
@@ -204,8 +204,8 @@ END:
 }
 
 bool ScreenManager::screen_calibration_set_homography_points_callback(
-	smart_home_msgs::SetScreenCalibrationPointsOfHomography::Request& req,
-	smart_home_msgs::SetScreenCalibrationPointsOfHomography::Response& res)
+	smart_home_common_msgs::SetScreenCalibrationPointsOfHomography::Request& req,
+	smart_home_common_msgs::SetScreenCalibrationPointsOfHomography::Response& res)
 {
 	std::vector<cv::Point2f> pts_image(4);
 	for (unsigned int i = 0; i < req.pts_of_homog.size(); ++i)
