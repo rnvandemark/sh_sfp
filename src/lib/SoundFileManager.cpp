@@ -73,13 +73,13 @@ struct SfManager::SfPlaybackData
 		switch (sound.getStatus())
 		{
 			case sf::SoundSource::Status::Stopped:
-				return smart_home_common_msgs::PlaybackUpdate::STOPPED;
+				return smart_home_sfp_msgs::PlaybackUpdate::STOPPED;
 			case sf::SoundSource::Status::Playing:
-				return smart_home_common_msgs::PlaybackUpdate::PLAYING;
+				return smart_home_sfp_msgs::PlaybackUpdate::PLAYING;
 			case sf::SoundSource::Status::Paused:
-				return smart_home_common_msgs::PlaybackUpdate::PAUSED;
+				return smart_home_sfp_msgs::PlaybackUpdate::PAUSED;
 			default:
-				return smart_home_common_msgs::PlaybackUpdate::UNKNOWN;
+				return smart_home_sfp_msgs::PlaybackUpdate::UNKNOWN;
 		}
 	}
 
@@ -87,8 +87,8 @@ struct SfManager::SfPlaybackData
 	{
 		switch (playbackStatus)
 		{
-			case smart_home_common_msgs::PlaybackUpdate::PLAYING:
-			case smart_home_common_msgs::PlaybackUpdate::PAUSED:
+			case smart_home_sfp_msgs::PlaybackUpdate::PLAYING:
+			case smart_home_sfp_msgs::PlaybackUpdate::PAUSED:
 				return true;
 			default:
 				return false;
@@ -265,7 +265,7 @@ SfManager::SfManager(
 		ready(false),
 		sfpd(new SfPlaybackData),
 		playback_frequencies_msg(new smart_home_common_msgs::Float32Arr),
-		playback_updates_msg(new smart_home_common_msgs::PlaybackUpdate)
+		playback_updates_msg(new smart_home_sfp_msgs::PlaybackUpdate)
 {
 	assert(max_num_freqs > 0);
 	sound_file_path_sub = nh.subscribe(
@@ -296,7 +296,7 @@ SfManager::SfManager(
 		playback_frequencies_pub_topic,
 		10
 	);
-	playback_updates_pub = nh.advertise<smart_home_common_msgs::PlaybackUpdate>(
+	playback_updates_pub = nh.advertise<smart_home_sfp_msgs::PlaybackUpdate>(
 		playback_updates_pub_topic,
 		10
 	);
@@ -338,20 +338,20 @@ void SfManager::fft_window_callback(const std_msgs::Float32& msg)
 		calc_frequencies_tmr = INST_CALC_FREQ_TMR();
 	}
 }
-void SfManager::playback_command_callback(const smart_home_common_msgs::PlaybackCommand& msg)
+void SfManager::playback_command_callback(const smart_home_sfp_msgs::PlaybackCommand& msg)
 {
 	switch (msg.cmd)
 	{
-		case smart_home_common_msgs::PlaybackCommand::STOP:
+		case smart_home_sfp_msgs::PlaybackCommand::STOP:
 			PLAYBACK_STOP();
 			break;
-		case smart_home_common_msgs::PlaybackCommand::PAUSE:
+		case smart_home_sfp_msgs::PlaybackCommand::PAUSE:
 			PLAYBACK_PAUSE();
 			break;
-		case smart_home_common_msgs::PlaybackCommand::RESUME:
+		case smart_home_sfp_msgs::PlaybackCommand::RESUME:
 			PLAYBACK_RESUME();
 			break;
-		case smart_home_common_msgs::PlaybackCommand::SKIP:
+		case smart_home_sfp_msgs::PlaybackCommand::SKIP:
 			PLAYBACK_CONTINUE();
 			break;
 	}

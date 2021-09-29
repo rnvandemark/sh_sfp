@@ -9,8 +9,8 @@
 #include <std_msgs/String.h>
 #include <std_msgs/Float32.h>
 #include <smart_home_common_msgs/StringArr.h>
-#include <smart_home_common_msgs/PlaybackCommand.h>
-#include <smart_home_common_msgs/PlaybackUpdate.h>
+#include <smart_home_sfp_msgs/PlaybackCommand.h>
+#include <smart_home_sfp_msgs/PlaybackUpdate.h>
 #include <smart_home_common_msgs/Float32Arr.h>
 
 namespace smart_home {
@@ -29,7 +29,7 @@ protected:
 	ros::Timer send_playback_update_tmr;
 
 	smart_home_common_msgs::Float32ArrPtr playback_frequencies_msg;
-	smart_home_common_msgs::PlaybackUpdatePtr playback_updates_msg;
+	smart_home_sfp_msgs::PlaybackUpdatePtr playback_updates_msg;
 
 	const int max_num_freqs;
 
@@ -63,7 +63,7 @@ public:
 	void sound_file_path_callback(const std_msgs::String& msg);
 	void sound_file_path_list_callback(const smart_home_common_msgs::StringArr& msg);
 	void fft_window_callback(const std_msgs::Float32& msg);
-	void playback_command_callback(const smart_home_common_msgs::PlaybackCommand& msg);
+	void playback_command_callback(const smart_home_sfp_msgs::PlaybackCommand& msg);
 	void calc_frequencies_callback(const ros::TimerEvent& evt);
 	void send_playback_update_callback(const ros::TimerEvent& evt);
 };
