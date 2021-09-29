@@ -8,11 +8,12 @@ find_package(catkin REQUIRED COMPONENTS
 	cv_bridge
 	image_transport
 	smart_home_common_msgs
+	smart_home_scc_msgs
 )
 find_package(OpenCV)
 
 catkin_package(
-	CATKIN_DEPENDS roscpp sensor_msgs cv_bridge image_transport smart_home_common_msgs std_msgs
+	CATKIN_DEPENDS roscpp sensor_msgs cv_bridge image_transport smart_home_common_msgs smart_home_scc_msgs
 	DEPENDS OpenCV
 )
 
