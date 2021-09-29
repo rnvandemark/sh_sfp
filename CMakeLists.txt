@@ -5,11 +5,11 @@ find_package(catkin REQUIRED COMPONENTS
 	roscpp
 	roslib
 	std_msgs
-	smart_home_msgs
+	smart_home_common_msgs
 )
 
 catkin_package(
-	CATKIN_DEPENDS roscpp roslib smart_home_msgs std_msgs
+	CATKIN_DEPENDS roscpp roslib smart_home_common_msgs std_msgs
 )
 
 include_directories(
