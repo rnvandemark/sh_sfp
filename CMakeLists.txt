@@ -1,37 +1,34 @@
-cmake_minimum_required(VERSION 3.0.2)
-project(smart_home_sfp)
+cmake_minimum_required(VERSION 3.5)
+project(sh_sfp)
 
-find_package(catkin REQUIRED COMPONENTS
-	roscpp
-	roslib
-	std_msgs
-	smart_home_common_msgs
-	smart_home_sfp_msgs
-)
+find_package(rclcpp REQUIRED)
+#find_package(std_msgs REQUIRED)
+#find_package(sh_common_interfaces REQUIRED)
+#find_package(sh_sfp_interfaces REQUIRED)
 
-catkin_package(
-	CATKIN_DEPENDS roscpp roslib std_msgs smart_home_common_msgs smart_home_sfp_msgs
-)
+include_directories(include)
 
-include_directories(
-	include
-	${catkin_INCLUDE_DIRS}
-)
-
-add_executable(SfAnalyzer src/nodes/SoundFileHandlerNode.cpp src/lib/SoundHelpers.cpp src/lib/SoundFileManager.cpp)
-target_link_libraries(SfAnalyzer m fftw3 sndfile sfml-audio sfml-system ${catkin_LIBRARIES})
-
-install(TARGETS
-	SfAnalyzer
-	RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
+#add_executable(SfAnalyzer src/nodes/SoundFileHandlerNode.cpp src/lib/SoundHelpers.cpp src/lib/SoundFileManager.cpp)
+#ament_target_dependencies(SfAnalyzer
+#    rclcpp
+#    cv_bridge
+#    sh_common
+#    image_transport
+#    sensor_msgs
+#    sh_common_interfaces
+#    sh_scc_interfaces
+#    OpenCV
+#)
 
 install(
-  DIRECTORY launch/
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+    DIRECTORY include/
+    DESTINATION include
 )
 
-install(
-  DIRECTORY bin/
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/bin
-)
+#install(
+#    TARGETS SfAnalyzer
+#    RUNTIME DESTINATION lib/${PROJECT_NAME}
+#    INCLUDES DESTINATION include
+#)
+
+ament_package()
