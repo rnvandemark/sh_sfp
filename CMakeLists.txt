@@ -31,4 +31,20 @@ install(
 #    INCLUDES DESTINATION include
 #)
 
+ament_python_install_package(${PROJECT_NAME})
+install(
+    PROGRAMS scripts/audio_downloader.py
+    DESTINATION lib/${PROJECT_NAME}
+)
+
+install(
+    DIRECTORY config
+    DESTINATION share/${PROJECT_NAME}
+)
+
+install(
+    DIRECTORY launch
+    DESTINATION share/${PROJECT_NAME}
+)
+
 ament_package()

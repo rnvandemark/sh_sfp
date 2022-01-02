@@ -1,0 +1,237 @@
+#!/usr/bin/env python3
+
+from __future__ import unicode_literals
+from sys import argv as sargv
+from enum import Enum
+from os import sep as osep
+from os.path import join as ojoin
+from datetime import datetime
+from time import sleep
+import youtube_dl
+
+from rclpy import init as rclpy_init, spin as rclpy_spin, shutdown as rclpy_shutdown
+from rclpy.node import Node
+from rclpy.executors import MultiThreadedExecutor   
+from rclpy.action import ActionServer, CancelResponse, GoalResponse
+from std_msgs.msg import Header
+
+import sh_common_constants
+from sh_common.heartbeat_node import HeartbeatNode
+from sh_sfp_interfaces.action import DownloadAudio
+
+## An enum to help guarantee a proper video quality was specified
+class QualityTypes(Enum):
+    ## 64 kbps
+    _64 = DownloadAudio.Goal.QUALITY_64
+    ## 128 kbps
+    _128 = DownloadAudio.Goal.QUALITY_128
+    ## 192 kbps
+    _192 = DownloadAudio.Goal.QUALITY_192
+    ## 256 kbps
+    _256 = DownloadAudio.Goal.QUALITY_256
+    ## 320 kbps
+    _320 = DownloadAudio.Goal.QUALITY_320
+
+    ## Convert the enum to the string '64', '128', etc.
+    #  @param self The object pointer.
+    #  @param return The quality integer as a string.
+    def __str__(self):
+        return self.name[1:]
+
+## A helper class that contains the status of a download currently occurring asynchronously.
+class AsyncDownload():
+
+    ## The constructor. Sets the 'current download' to null.
+    #  @param self The object pointer.
+    def __init__(self):
+        self.reset(None, None, None)
+
+    ## Prepare to start a newly requested download.
+    #  @param self The object pointer.
+    #  @param yt_url The URL of the YouTube video to download.
+    #  @param quality A QualityTypes value to specify the download quality of the video.
+    #  @param local_url The absolute URL on this machine of the file that the downloaded
+    #  video is being saved to.
+    def reset(self, yt_url, quality, local_url):
+        self.finished = False
+        self.completion = 0.0
+        self.yt_url = yt_url
+        self.quality = quality
+        self.local_url = local_url
+        self.err_msg = None
+        self.success = False  # Prove this otherwise
+
+## A node that hosts an action which can be used to download YouTube videos as .wav files.
+class AudioDownloaderNode(HeartbeatNode):
+
+    ## The constructor. Implements the node heartbeat and creates the action server.
+    #  @param self The object pointer.
+    def __init__(self):
+        super(AudioDownloaderNode, self).__init__("sh_audio_downloader")
+
+        #
+        # Declare actions
+        #
+
+        self.download_audio_srv = ActionServer(
+            self,
+            DownloadAudio,
+            sh_common_constants.actions.DOWNLOAD_AUDIO,
+            execute_callback=self.execute_callback,
+            goal_callback=self.goal_callback,
+            cancel_callback=self.cancel_callback
+        )
+
+        #
+        # Init other members
+        #
+
+        self.curr_download = AsyncDownload()
+
+    ## Callback to either accept or reject requested downloads. The goal is rejected
+    #  only if the given quality is not a valid value, otherwise it's accepted.
+    #  @param self The object pointer.
+    #  @param goal_request The requested goal to either accept or reject.
+    #  @return The acceptance/rejection status.
+    def goal_callback(self, goal_request):
+        u = goal_request.yt_url
+        q = goal_request.quality
+        resp = GoalResponse.ACCEPT
+        try:
+            self.get_logger().info(
+                "Received download request: '{0}' at {1} kbps".format(u, str(QualityTypes(q)))
+            )
+        except Exception as e:
+            self.get_logger().error("Invalid download request: {0}, {1}".format(u, str(q)))
+            resp = GoalResponse.REJECT
+        return resp
+
+    ## Simple callback for requests to cancel the current download. Unfortunately there
+    #  is no way with the youtube-dl API to cancel a download, so all requests are rejected.
+    #  @param self The object pointer.
+    #  @param goal_handle The handle for the action's goal.
+    #  @return The rejection status.
+    def cancel_callback(self, goal_handle):
+        self.get_logger().warn("Cannot cancel a youtube_dl download, ignoring request.")
+        return CancelResponse.REJECT
+
+    ## Async callback for updates on the current download. We are guaranteed at least one
+    #  callback issued here when the download is finished.
+    #  @param self The object pointer.
+    #  @param update Telemetry on the download's update.
+    async def progress_update_hook(self, update):
+        status = update["status"]
+        if "error" == status:
+            # There was an error during the download. We're finished, but we log the error.
+            self.curr_download.err_msg = "Download failed at {0}%.".format(self.curr_download.completion)
+            self.curr_download.finished = True
+        elif "downloading" == status:
+            # We're still downloading, report the percent downloaded out of 100.
+            self.curr_download.completion = float(update["_percent_str"].replace("%", ""))
+        elif "finished" == status:
+            # We finished the download successfully.
+            self.curr_download.completion = 100.0
+            self.curr_download.success = True
+            self.curr_download.finished = True
+        else:
+            self.get_logger().warn("Unknown status update type: " + str(status))
+
+        self.get_logger().debug("Received download update: '{0}', {1}%".format(status, self.curr_download.completion))
+
+    ## Asynchronously start the download currently queued.
+    #  @param self The object pointer.
+    async def do_download(self):
+        # Safely handle any and all exceptions, simply setting an error message on failure
+        try:
+            lurl = self.curr_download.local_url
+            yt_opts = {
+                "quiet": True, # Suppress output to STDOUT
+                "format": "bestaudio/best",
+                "extractaudio": True,
+                "prefer-ffmpeg": True,
+                "postprocessors": [{
+                    "key": "FFmpegExtractAudio",
+                    "preferredcodec": "wav", # Download a .wav file
+                    "preferredquality": str(self.curr_download.quality), # Use the specified quality
+                }],
+                "outtmpl": lurl, # Download to the specified local file URL
+                "noplaylist": True, # Ignore YouTube playlists if given, only download the current video
+                "progress_hooks": [ # Create an async task out of every progress update callback
+                    lambda u: self.executor.create_task(self.progress_update_hook(u))
+                ],
+            }
+            with youtube_dl.YoutubeDL(yt_opts) as ydl:
+                # Finally, perform the actual download
+                self.get_logger().info("Starting download to '{0}'.".format(lurl))
+                ydl.download([self.curr_download.yt_url])
+                self.get_logger().info("Finished download to '{0}'.".format(lurl))
+        except Exception as e:
+            self.err_msg = "Exception encountered: " + str(e)
+            self.curr_download.finished = True
+
+    ## Async callback for a requested goal having been accepted, so start meeting the
+    #  goal. For this action, that means starting the download, publishing intermediate
+    #  updates while still downloading, and returning the local file URL where the data
+    #  is downloaded to once done.
+    #  @param self The object pointer.
+    #  @param goal_handle The handle for the action's goal.
+    #  @return The result message, DownloadAudio.Result, of the requested download.
+    async def execute_callback(self, goal_handle):
+        # Capture the arguments
+        yt_url = goal_handle.request.yt_url
+        quality = QualityTypes(goal_handle.request.quality)
+
+        # Create a unique ID for this request
+        # TODO: use this to support multiple concurrent requests
+        yt_url_id_idx = yt_url.find("v=")
+        unique_id = "{0}_{1}".format(
+            datetime.now().strftime("%Y%m%dT%H%M%S%f"),
+            yt_url[yt_url_id_idx+2:] if yt_url_id_idx >= 0 else "ID"
+        )
+
+        # Target the local file URL to be in the smart home temporary folder
+        local_url = ojoin(osep, "tmp", "sh", unique_id + ".wav")
+
+        # Set the download configuration parameters and start the async download
+        self.curr_download.reset(yt_url, quality, local_url)
+        self.executor.create_task(self.do_download())
+
+        # Start publishing feedback until the download is complete
+        feedback_msg = DownloadAudio.Feedback()
+        prev_completion = 0.0
+        in_progress = True
+        while in_progress:
+            sleep(0.5)
+            curr_completion = self.curr_download.completion
+            # Only output an update if the percent complete changed
+            if prev_completion != curr_completion:
+                feedback_msg.completion = curr_completion
+                goal_handle.publish_feedback(feedback_msg)
+                prev_completion = curr_completion
+            # Loop until the download has been marked as finished
+            in_progress = not self.curr_download.finished
+
+        # The download finished (either through success or failure), create the result response
+        result_msg = DownloadAudio.Result()
+        if self.curr_download.success:
+            # The download was successful, populate the local file URL that this was saved to
+            result_msg.local_url = local_url
+            goal_handle.succeed()
+        else:
+            # The download failed, log the error message
+            self.get_logger().error(self.curr_download.err_msg)
+            goal_handle.abort()
+
+        return result_msg
+
+## The main function to startup the ROS environment and create our node.
+def main():
+    # Create our node with a multi-threaded executor to process multiple goals concurrently
+    rclpy_init(args=sargv)
+    node = AudioDownloaderNode()
+    rclpy_spin(node, executor=MultiThreadedExecutor())
+    node.destroy()
+    rclpy_shutdown()
+
+if __name__ == "__main__":
+    main()
