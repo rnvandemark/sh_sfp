@@ -52,14 +52,14 @@ class AsyncDownload():
 
     ## The constructor. Prepare to start a newly requested download.
     #  @param self The object pointer.
-    #  @param yt_url The URL of the YouTube video to download.
+    #  @param video_id The unique ID of the YouTube video to download.
     #  @param quality A QualityTypes value to specify the download quality of the video.
     #  @param local_url The absolute URL on this machine of the file that the downloaded
     #  video is being saved to.
-    def __init__(self, yt_url, quality, local_url):
+    def __init__(self, video_id, quality, local_url):
         self.finished = False
         self.completion = 0.0
-        self.yt_url = yt_url
+        self.video_id = video_id
         self.quality = quality
         self.local_url = local_url
         self.err_msg = None
@@ -104,15 +104,15 @@ class AudioDownloaderNode(HeartbeatNode):
     #  @param goal_request The requested goal to either accept or reject.
     #  @return The acceptance/rejection status.
     def goal_callback(self, goal_request):
-        u = goal_request.yt_url
+        v = goal_request.video_id
         q = goal_request.quality
         resp = GoalResponse.ACCEPT
         try:
             self.get_logger().info(
-                "Received download request: '{0}' at {1} kbps".format(u, str(QualityTypes(q)))
+                "Received download request: '{0}' at {1} kbps".format(v, str(QualityTypes(q)))
             )
         except Exception as e:
-            self.get_logger().error("Invalid download request: {0}, {1}".format(u, str(q)))
+            self.get_logger().error("Invalid download request: {0}, {1}".format(v, str(q)))
             resp = GoalResponse.REJECT
         return resp
 
@@ -188,7 +188,7 @@ class AudioDownloaderNode(HeartbeatNode):
             with youtube_dl.YoutubeDL(yt_opts) as ydl:
                 # Finally, perform the actual download
                 self.get_logger().info("Starting download to '{0}'.".format(lurl))
-                ydl.download([async_download.yt_url])
+                ydl.download(["https://www.youtube.com/watch?v=" + async_download.video_id])
                 self.get_logger().info("Finished download to '{0}'.".format(lurl))
         except Exception as e:
             self.err_msg = "Exception encountered: " + str(e)
@@ -204,21 +204,18 @@ class AudioDownloaderNode(HeartbeatNode):
     async def execute_callback(self, goal_handle):
         try:
             # Capture the arguments
-            yt_url = goal_handle.request.yt_url
+            video_id = goal_handle.request.video_id
             quality = QualityTypes(goal_handle.request.quality)
 
-            # Create a unique ID for this request
-            yt_url_id_idx = yt_url.find("v=")
+            # Target the local file URL to be in the smart home temporary folder
             unique_id = "{0}_{1}".format(
                 datetime.now().strftime("%Y%m%dT%H%M%S%f"),
-                yt_url[yt_url_id_idx+2:] if yt_url_id_idx >= 0 else "ID"
+                video_id
             )
-
-            # Target the local file URL to be in the smart home temporary folder
             local_url = ojoin(osep, "tmp", "sh", unique_id + ".wav")
 
             # Set the download configuration parameters and start the async download
-            async_download = AsyncDownload(yt_url, quality, local_url)
+            async_download = AsyncDownload(video_id, quality, local_url)
             self.executor.create_task(self.do_download(async_download))
 
             # Start publishing feedback until the download is complete
