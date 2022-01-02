@@ -203,51 +203,51 @@ class AudioDownloaderNode(HeartbeatNode):
     #  @return The result message, DownloadAudio.Result, of the requested download.
     async def execute_callback(self, goal_handle):
         try:
-        # Capture the arguments
-        yt_url = goal_handle.request.yt_url
-        quality = QualityTypes(goal_handle.request.quality)
+            # Capture the arguments
+            yt_url = goal_handle.request.yt_url
+            quality = QualityTypes(goal_handle.request.quality)
 
-        # Create a unique ID for this request
-        yt_url_id_idx = yt_url.find("v=")
-        unique_id = "{0}_{1}".format(
-            datetime.now().strftime("%Y%m%dT%H%M%S%f"),
-            yt_url[yt_url_id_idx+2:] if yt_url_id_idx >= 0 else "ID"
-        )
+            # Create a unique ID for this request
+            yt_url_id_idx = yt_url.find("v=")
+            unique_id = "{0}_{1}".format(
+                datetime.now().strftime("%Y%m%dT%H%M%S%f"),
+                yt_url[yt_url_id_idx+2:] if yt_url_id_idx >= 0 else "ID"
+            )
 
-        # Target the local file URL to be in the smart home temporary folder
-        local_url = ojoin(osep, "tmp", "sh", unique_id + ".wav")
+            # Target the local file URL to be in the smart home temporary folder
+            local_url = ojoin(osep, "tmp", "sh", unique_id + ".wav")
 
-        # Set the download configuration parameters and start the async download
-        async_download = AsyncDownload(yt_url, quality, local_url)
-        self.executor.create_task(self.do_download(async_download))
+            # Set the download configuration parameters and start the async download
+            async_download = AsyncDownload(yt_url, quality, local_url)
+            self.executor.create_task(self.do_download(async_download))
 
-        # Start publishing feedback until the download is complete
-        feedback_msg = DownloadAudio.Feedback()
-        prev_completion = 0.0
-        in_progress = True
-        while in_progress:
-            sleep(0.5)
-            curr_completion = async_download.completion
-            # Only output an update if the percent complete changed
-            if prev_completion != curr_completion:
-                feedback_msg.completion = curr_completion
-                goal_handle.publish_feedback(feedback_msg)
-                prev_completion = curr_completion
-            # Loop until the download has been marked as finished
-            in_progress = not async_download.finished
+            # Start publishing feedback until the download is complete
+            feedback_msg = DownloadAudio.Feedback()
+            prev_completion = 0.0
+            in_progress = True
+            while in_progress:
+                sleep(0.5)
+                curr_completion = async_download.completion
+                # Only output an update if the percent complete changed
+                if prev_completion != curr_completion:
+                    feedback_msg.completion = curr_completion
+                    goal_handle.publish_feedback(feedback_msg)
+                    prev_completion = curr_completion
+                # Loop until the download has been marked as finished
+                in_progress = not async_download.finished
 
-        # The download finished (either through success or failure), create the result response
-        result_msg = DownloadAudio.Result()
-        if async_download.success:
-            # The download was successful, populate the local file URL that this was saved to
-            result_msg.local_url = local_url
-            goal_handle.succeed()
-        else:
-            # The download failed, log the error message
-            self.get_logger().error(async_download.err_msg)
-            goal_handle.abort()
+            # The download finished (either through success or failure), create the result response
+            result_msg = DownloadAudio.Result()
+            if async_download.success:
+                # The download was successful, populate the local file URL that this was saved to
+                result_msg.local_url = local_url
+                goal_handle.succeed()
+            else:
+                # The download failed, log the error message
+                self.get_logger().error(async_download.err_msg)
+                goal_handle.abort()
 
-        return result_msg
+            return result_msg
 
         finally:
             with self.goal_queue_mutex:
