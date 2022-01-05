@@ -90,6 +90,9 @@ class AudioDownloaderNode(HeartbeatNode):
         self.goal_queue_mutex = Lock()
         self.current_goal = None
 
+        # Done
+        self.get_logger().info("Started.")
+
     ## Helper function to start a goal's execution.
     #  @param self The object pointer.
     #  @param next_goal_handle The new goal to start execution for.
@@ -260,9 +263,10 @@ def main():
     # Create our node with a multi-threaded executor to process goal requests concurrently
     rclpy_init(args=sargv)
     node = AudioDownloaderNode()
-    rclpy_spin(node, executor=MultiThreadedExecutor())
-    node.destroy()
-    rclpy_shutdown()
+    try:
+        rclpy_spin(node, executor=MultiThreadedExecutor())
+    except KeyboardInterrupt:
+        pass
 
 if __name__ == "__main__":
     main()
