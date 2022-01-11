@@ -18,4 +18,11 @@ def generate_launch_description():
         parameters=[cfg],
         on_exit=Shutdown(),
     ))
+    desc.add_action(Node(
+        package="sh_sfp",
+        executable="SfAnalyzer",
+        namespace="/smart_home",
+        parameters=[cfg],
+        on_exit=Shutdown(),
+    ))
     return desc
