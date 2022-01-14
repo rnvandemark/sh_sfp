@@ -50,6 +50,10 @@ SoundFilePlayback::SoundFilePlayback() :
             std::placeholders::_2
         )
     );
+    begin_playback_pub = create_publisher<sh_sfp_interfaces::msg::BeginPlayback>(
+        sh::names::topics::PLAYBACK_BEGIN,
+        1
+    );
     playback_update_pub = create_publisher<sh_sfp_interfaces::msg::PlaybackUpdate>(
         sh::names::topics::PLAYBACK_UPDATES,
         1
@@ -65,19 +69,28 @@ rclcpp_action::GoalResponse SoundFilePlayback::handle_goal(
     const rclcpp_action::GoalUUID & uuid,
     std::shared_ptr<const sh_sfp_interfaces::action::PlaySoundFile::Goal> goal)
 {
-    (void)uuid;
+    // Declare, in case the request is accepted
+    sh_sfp_interfaces::msg::BeginPlayback begin_playback;
 
-    const std::string url = goal->local_url;
+    // Process request
     rclcpp_action::GoalResponse rv = rclcpp_action::GoalResponse::REJECT;
+    const std::string url = goal->local_url;
 
+    // Deny request if the file can't be found
     if (!std::filesystem::exists(url))
     {
         RCLCPP_ERROR(get_logger(), "Requested sound file '%s' does not exist.", url.c_str());
         goto END;
     }
 
+    // Otherwise, accept
     rv = rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
     RCLCPP_INFO(get_logger(), "Accepted request to play sound file at '%s'.", url.c_str());
+
+    // The request was accepted, publish a message saying so
+    begin_playback.accepted_goal_id.uuid = uuid;
+    begin_playback.local_url = url;
+    begin_playback_pub->publish(begin_playback);
 
 END:
     return rv;
@@ -192,8 +205,8 @@ void SoundFilePlayback::execute(const PlaySoundFileGoalHandleSharedPtr goal_hand
             sf_finished = (sound.getStatus() == sf::SoundSource::Status::Stopped);
 
             // Populate the playback update message
-            playback_update.duration_current = rclcpp::Duration::from_seconds(sound.getDuration().asSeconds());
-            playback_update.duration_total = rclcpp::Duration::from_seconds(sound.getPlayingOffset().asSeconds());
+            playback_update.duration_current = rclcpp::Duration::from_seconds(sound.getPlayingOffset().asSeconds());
+            playback_update.duration_total = rclcpp::Duration::from_seconds(sound.getDuration().asSeconds());
             playback_update.is_paused = (sound.getStatus() == sf::SoundSource::Status::Paused);
 
             // Publish the individual output, as well as send the action's feedback
