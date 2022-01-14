@@ -22,6 +22,9 @@ import sh_common_constants
 from sh_common.heartbeat_node import HeartbeatNode
 from sh_sfp_interfaces.action import DownloadAudio
 
+# Constant: file format
+FILE_FORMAT = "m4a"
+
 ## Helper function to get a string of a goal handle's UUID as a string
 #  @param goal_handle The goal handle.
 #  @return The UUID of the handle, stringified from the list of bytes.
@@ -65,7 +68,7 @@ class AsyncDownload():
         self.err_msg = None
         self.success = False  # Prove this otherwise
 
-## A node that hosts an action which can be used to download YouTube videos as .wav files.
+## A node that hosts an action which can be used to download YouTube videos as .FILE_FORMAT files.
 class AudioDownloaderNode(HeartbeatNode):
 
     ## The constructor. Implements the node heartbeat and creates the action server.
@@ -174,12 +177,11 @@ class AudioDownloaderNode(HeartbeatNode):
             lurl = async_download.local_url
             yt_opts = {
                 "quiet": True, # Suppress output to STDOUT
-                "format": "bestaudio/best",
+                "format": FILE_FORMAT,
                 "extractaudio": True,
                 "prefer-ffmpeg": True,
                 "postprocessors": [{
                     "key": "FFmpegExtractAudio",
-                    "preferredcodec": "wav", # Download a .wav file
                     "preferredquality": str(async_download.quality), # Use the specified quality
                 }],
                 "outtmpl": lurl, # Download to the specified local file URL
@@ -215,7 +217,7 @@ class AudioDownloaderNode(HeartbeatNode):
                 datetime.now().strftime("%Y%m%dT%H%M%S%f"),
                 video_id
             )
-            local_url = ojoin(osep, "tmp", "sh", unique_id + ".wav")
+            local_url = ojoin(osep, "tmp", "sh", unique_id + "." + FILE_FORMAT)
 
             # Set the download configuration parameters and start the async download
             async_download = AsyncDownload(video_id, quality, local_url)
