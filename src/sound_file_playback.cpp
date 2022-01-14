@@ -54,8 +54,8 @@ SoundFilePlayback::SoundFilePlayback() :
         sh::names::topics::PLAYBACK_BEGIN,
         1
     );
-    playback_update_pub = create_publisher<sh_sfp_interfaces::msg::PlaybackUpdate>(
-        sh::names::topics::PLAYBACK_UPDATES,
+    playback_update_verbose_pub = create_publisher<sh_sfp_interfaces::msg::PlaybackUpdate>(
+        sh::names::topics::PLAYBACK_UPDATES_VERBOSE,
         1
     );
 
@@ -172,6 +172,7 @@ void SoundFilePlayback::execute(const PlaySoundFileGoalHandleSharedPtr goal_hand
 
     // Loop until the sound playback is finished
     sh_sfp_interfaces::msg::PlaybackUpdate playback_update;
+    rclcpp::Time last_sparse_update(0, 0, get_clock()->get_clock_type());
     rclcpp::Rate loop_rate(update_rate_hz);
     bool sf_finished = false;
     while (rclcpp::ok() && !sf_finished)
@@ -209,10 +210,18 @@ void SoundFilePlayback::execute(const PlaySoundFileGoalHandleSharedPtr goal_hand
             playback_update.duration_total = rclcpp::Duration::from_seconds(sound.getDuration().asSeconds());
             playback_update.is_paused = (sound.getStatus() == sf::SoundSource::Status::Paused);
 
-            // Publish the individual output, as well as send the action's feedback
-            playback_feedback->update = playback_update;
-            playback_update_pub->publish(playback_update);
-            goal_handle->publish_feedback(playback_feedback);
+            // Publish the verbose output
+            playback_update_verbose_pub->publish(playback_update);
+
+            // Publish the sparse output if it's time to do so
+            const rclcpp::Time time_now = now();
+            if ((time_now - last_sparse_update).seconds() >= (1.0-(1/update_rate_hz)))
+            {
+                // Send the action's feedback
+                playback_feedback->update = playback_update;
+                goal_handle->publish_feedback(playback_feedback);
+                last_sparse_update = time_now;
+            }
         }
 
         // If we're not done, sleep for a little bit
