@@ -1,4 +1,4 @@
-#include "sh_sfp/SoundFileManager.hpp"
+#include "sh_sfp/sound_file_playback.hpp"
 
 #include <sh_common/ros_names.hpp>
 
@@ -12,8 +12,8 @@
 
 namespace sh {
 
-SfManager::SfManager() :
-        HeartbeatNode("SfManager"),
+SoundFilePlayback::SoundFilePlayback() :
+        HeartbeatNode("sound_file_playback"),
         update_rate_hz(60),
         playback_active(false),
         pending_command(sh_sfp_interfaces::srv::RequestPlaybackCommand::Request::NONE)
@@ -25,18 +25,18 @@ SfManager::SfManager() :
         get_node_waitables_interface(),
         sh::names::actions::REQUEST_PLAY_SOUND_FILE,
         std::bind(
-            &sh::SfManager::handle_goal,
+            &sh::SoundFilePlayback::handle_goal,
             this,
             std::placeholders::_1,
             std::placeholders::_2
         ),
         std::bind(
-            &sh::SfManager::handle_cancel,
+            &sh::SoundFilePlayback::handle_cancel,
             this,
             std::placeholders::_1
         ),
         std::bind(
-            &sh::SfManager::handle_accepted,
+            &sh::SoundFilePlayback::handle_accepted,
             this,
             std::placeholders::_1
         )
@@ -44,7 +44,7 @@ SfManager::SfManager() :
     request_playback_command_scl = create_service<sh_sfp_interfaces::srv::RequestPlaybackCommand>(
         sh::names::services::PLAYBACK_COMMANDS,
         std::bind(
-            &sh::SfManager::handle_playback_command_requests,
+            &sh::SoundFilePlayback::handle_playback_command_requests,
             this,
             std::placeholders::_1,
             std::placeholders::_2
@@ -55,13 +55,13 @@ SfManager::SfManager() :
         1
     );
 
-    RCLCPP_INFO(get_logger(), "Initialized SoundFileAnalyzer.");
+    RCLCPP_INFO(get_logger(), "Initialized sound file playback.");
 }
-SfManager::~SfManager()
+SoundFilePlayback::~SoundFilePlayback()
 {
 }
 
-rclcpp_action::GoalResponse SfManager::handle_goal(
+rclcpp_action::GoalResponse SoundFilePlayback::handle_goal(
     const rclcpp_action::GoalUUID & uuid,
     std::shared_ptr<const sh_sfp_interfaces::action::PlaySoundFile::Goal> goal)
 {
@@ -83,22 +83,22 @@ END:
     return rv;
 }
 
-rclcpp_action::CancelResponse SfManager::handle_cancel(const PlaySoundFileGoalHandleSharedPtr goal_handle)
+rclcpp_action::CancelResponse SoundFilePlayback::handle_cancel(const PlaySoundFileGoalHandleSharedPtr goal_handle)
 {
     (void)goal_handle;
     RCLCPP_INFO(get_logger(), "Received request to cancel playing sound file.");
     return rclcpp_action::CancelResponse::ACCEPT;
 }
 
-void SfManager::handle_accepted(const PlaySoundFileGoalHandleSharedPtr goal_handle)
+void SoundFilePlayback::handle_accepted(const PlaySoundFileGoalHandleSharedPtr goal_handle)
 {
     std::thread {
-        std::bind(&sh::SfManager::execute, this, std::placeholders::_1),
+        std::bind(&sh::SoundFilePlayback::execute, this, std::placeholders::_1),
         goal_handle
     }.detach();
 }
 
-void SfManager::execute(const PlaySoundFileGoalHandleSharedPtr goal_handle)
+void SoundFilePlayback::execute(const PlaySoundFileGoalHandleSharedPtr goal_handle)
 {
     // Declare action feedback and result
     auto playback_feedback = std::make_shared<sh_sfp_interfaces::action::PlaySoundFile::Feedback>();
@@ -224,7 +224,7 @@ void SfManager::execute(const PlaySoundFileGoalHandleSharedPtr goal_handle)
     }
 }
 
-void SfManager::handle_playback_command_requests(
+void SoundFilePlayback::handle_playback_command_requests(
     const sh_sfp_interfaces::srv::RequestPlaybackCommand::Request::SharedPtr req,
     sh_sfp_interfaces::srv::RequestPlaybackCommand::Response::SharedPtr res)
 {
@@ -258,7 +258,7 @@ int main(int argc, char** argv)
 {
     rclcpp::init(argc, argv);
     rclcpp::executors::MultiThreadedExecutor executor;
-    auto node = std::make_shared<sh::SfManager>();
+    auto node = std::make_shared<sh::SoundFilePlayback>();
     executor.add_node(node);
     executor.spin();
     return 0;

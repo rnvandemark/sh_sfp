@@ -12,7 +12,7 @@
 
 namespace sh {
 
-class SfManager : public HeartbeatNode
+class SoundFilePlayback : public HeartbeatNode
 {
 protected:
     using PlaySoundFileGoalHandle = rclcpp_action::ServerGoalHandle<sh_sfp_interfaces::action::PlaySoundFile>;
@@ -30,8 +30,8 @@ protected:
     std::mutex playback_mutex;
 
 public:
-    SfManager();
-    ~SfManager();
+    SoundFilePlayback();
+    ~SoundFilePlayback();
 
     rclcpp_action::GoalResponse handle_goal(
         const rclcpp_action::GoalUUID& uuid,

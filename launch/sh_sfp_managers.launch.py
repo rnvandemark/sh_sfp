@@ -20,7 +20,7 @@ def generate_launch_description():
     ))
     desc.add_action(Node(
         package="sh_sfp",
-        executable="SfAnalyzer",
+        executable="sound_file_playback",
         namespace="/smart_home",
         parameters=[cfg],
         on_exit=Shutdown(),
