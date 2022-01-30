@@ -6,7 +6,6 @@
 #include <sh_common_interfaces/msg/float32_arr.hpp>
 #include <sh_sfp_interfaces/action/play_sound_file.hpp>
 #include <sh_sfp_interfaces/srv/request_playback_command.hpp>
-#include <sh_sfp_interfaces/msg/begin_playback.hpp>
 #include <sh_sfp_interfaces/msg/playback_update.hpp>
 
 #include <mutex>
@@ -21,7 +20,6 @@ protected:
 
     rclcpp_action::Server<sh_sfp_interfaces::action::PlaySoundFile>::SharedPtr play_sound_file_asr;
     rclcpp::Service<sh_sfp_interfaces::srv::RequestPlaybackCommand>::SharedPtr request_playback_command_scl;
-    rclcpp::Publisher<sh_sfp_interfaces::msg::BeginPlayback>::SharedPtr begin_playback_pub;
     rclcpp::Publisher<sh_sfp_interfaces::msg::PlaybackUpdate>::SharedPtr playback_update_verbose_pub;
 
     double update_rate_hz;

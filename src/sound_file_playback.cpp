@@ -50,10 +50,6 @@ SoundFilePlayback::SoundFilePlayback() :
             std::placeholders::_2
         )
     );
-    begin_playback_pub = create_publisher<sh_sfp_interfaces::msg::BeginPlayback>(
-        sh::names::topics::PLAYBACK_BEGIN,
-        1
-    );
     playback_update_verbose_pub = create_publisher<sh_sfp_interfaces::msg::PlaybackUpdate>(
         sh::names::topics::PLAYBACK_UPDATES_VERBOSE,
         1
@@ -69,9 +65,6 @@ rclcpp_action::GoalResponse SoundFilePlayback::handle_goal(
     const rclcpp_action::GoalUUID & uuid,
     std::shared_ptr<const sh_sfp_interfaces::action::PlaySoundFile::Goal> goal)
 {
-    // Declare, in case the request is accepted
-    sh_sfp_interfaces::msg::BeginPlayback begin_playback;
-
     // Process request
     rclcpp_action::GoalResponse rv = rclcpp_action::GoalResponse::REJECT;
     const std::string url = goal->local_url;
@@ -86,11 +79,6 @@ rclcpp_action::GoalResponse SoundFilePlayback::handle_goal(
     // Otherwise, accept
     rv = rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
     RCLCPP_INFO(get_logger(), "Accepted request to play sound file at '%s'.", url.c_str());
-
-    // The request was accepted, publish a message saying so
-    begin_playback.accepted_goal_id.uuid = uuid;
-    begin_playback.local_url = url;
-    begin_playback_pub->publish(begin_playback);
 
 END:
     return rv;
