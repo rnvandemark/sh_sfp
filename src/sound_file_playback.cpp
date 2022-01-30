@@ -7,9 +7,6 @@
 #include <filesystem>
 #include <thread>
 
-#include <cstdlib>
-#include <cstdio>
-
 namespace sh {
 
 SoundFilePlayback::SoundFilePlayback() :
@@ -106,34 +103,8 @@ void SoundFilePlayback::execute(const PlaySoundFileGoalHandleSharedPtr goal_hand
     auto playback_result = std::make_shared<sh_sfp_interfaces::action::PlaySoundFile::Result>();
     playback_result->was_stopped = false;
 
-    // Convert audio file to .wav format
-    const std::string original_path = goal_handle->get_goal()->local_url;
-    const std::string wav_path = original_path + ".wav";
-    const std::string command = std::string("ffmpeg -y -i \"")
-        + original_path
-        + "\" \""
-        + wav_path
-        + "\" > /dev/null 2>&1";
-    FILE* const pipe = popen(command.c_str(), "r");
-    if (0 == pipe)
-    {
-        RCLCPP_ERROR(get_logger(), "Failed to convert audio: '%s'.", command.c_str());
-        if (rclcpp::ok())
-        {
-            goal_handle->abort(playback_result);
-        }
-        return;
-    }
-    const int pipe_result = pclose(pipe);
-    if (-1 == pipe_result)
-    {
-        RCLCPP_ERROR(get_logger(), "Audio conversion failed with failure code '%d'.", pipe_result);
-        if (rclcpp::ok())
-        {
-            goal_handle->abort(playback_result);
-        }
-        return;
-    }
+    // We expect for the specified local file URL to be a WAV file
+    const std::string wav_path = goal_handle->get_goal()->local_url;
 
     // Load music file from file path
     sf::Music sound;
