@@ -231,69 +231,69 @@ class AudioDownloaderNode(HeartbeatNode):
 
             # Require at least one desired file format
             if len(file_formats) > 0:
-            # Init the resulting paths as all failures, overwrite as necessary
-            result_msg.local_urls.data = [""] * len(file_formats)
+                # Init the resulting paths as all failures, overwrite as necessary
+                result_msg.local_urls.data = [""] * len(file_formats)
 
-            # Target the local file URL to be in the smart home temporary folder
-            unique_id = "{0}_{1}".format(
-                datetime.now().strftime("%Y%m%dT%H%M%S%f"),
-                video_id
-            )
-            first_file_format = file_formats[0]
-            first_local_url = get_output_file_path(unique_id, first_file_format)
+                # Target the local file URL to be in the smart home temporary folder
+                unique_id = "{0}_{1}".format(
+                    datetime.now().strftime("%Y%m%dT%H%M%S%f"),
+                    video_id
+                )
+                first_file_format = file_formats[0]
+                first_local_url = get_output_file_path(unique_id, first_file_format)
 
-            # Set the download configuration parameters and start the async download
-            async_download = AsyncDownload(video_id, quality, first_local_url)
-            self.executor.create_task(self.do_download(async_download, first_file_format))
+                # Set the download configuration parameters and start the async download
+                async_download = AsyncDownload(video_id, quality, first_local_url)
+                self.executor.create_task(self.do_download(async_download, first_file_format))
 
-            # Start publishing feedback until the download is complete
-            feedback_msg = DownloadAudio.Feedback()
-            prev_completion = 0.0
-            in_progress = True
-            while in_progress:
-                sleep(0.5)
-                curr_completion = async_download.completion
-                # Only output an update if the percent complete changed
-                if prev_completion != curr_completion:
-                    feedback_msg.completion = curr_completion
-                    goal_handle.publish_feedback(feedback_msg)
-                    prev_completion = curr_completion
-                # Loop until the download has been marked as finished
-                in_progress = not async_download.finished
+                # Start publishing feedback until the download is complete
+                feedback_msg = DownloadAudio.Feedback()
+                prev_completion = 0.0
+                in_progress = True
+                while in_progress:
+                    sleep(0.5)
+                    curr_completion = async_download.completion
+                    # Only output an update if the percent complete changed
+                    if prev_completion != curr_completion:
+                        feedback_msg.completion = curr_completion
+                        goal_handle.publish_feedback(feedback_msg)
+                        prev_completion = curr_completion
+                    # Loop until the download has been marked as finished
+                    in_progress = not async_download.finished
 
-            # If the download was successful, attempt conversion to each file format
-            # If a conversion fails, denote this in the result as an empty string (per
-            # the specification of the action's definition)
-            if async_download.success:
-                result_msg.local_urls.data[0] = first_local_url
-                for ii, ff in enumerate(file_formats[1:], start=1):
-                    next_local_url = get_output_file_path(unique_id, ff)
-                    try:
-                        # Attempt to convert to the specified file format
-                        # There is already an empty string at this index in the result,
-                        # so only bother overwriting on success
-                        ffmpeg.input(first_local_url).output(next_local_url).run(
-                            capture_stdout=True,
-                            capture_stderr=True,
-                            overwrite_output=True
-                        )
-                        result_msg.local_urls.data[ii] = next_local_url
-                        self.get_logger().info(
-                            "Successfully converted '{0}' to '{1}' format.".format(first_local_url, ff)
-                        )
-                    except ffmpeg._run.Error:
-                        # If the conversion failed, ignore it
-                        self.get_logger().info(
-                            "Failed to convert '{0}' to '{1}' format.".format(first_local_url, ff)
-                        )
-                        pass
+                # If the download was successful, attempt conversion to each file format
+                # If a conversion fails, denote this in the result as an empty string (per
+                # the specification of the action's definition)
+                if async_download.success:
+                    result_msg.local_urls.data[0] = first_local_url
+                    for ii, ff in enumerate(file_formats[1:], start=1):
+                        next_local_url = get_output_file_path(unique_id, ff)
+                        try:
+                            # Attempt to convert to the specified file format
+                            # There is already an empty string at this index in the result,
+                            # so only bother overwriting on success
+                            ffmpeg.input(first_local_url).output(next_local_url).run(
+                                capture_stdout=True,
+                                capture_stderr=True,
+                                overwrite_output=True
+                            )
+                            result_msg.local_urls.data[ii] = next_local_url
+                            self.get_logger().info(
+                                "Successfully converted '{0}' to '{1}' format.".format(first_local_url, ff)
+                            )
+                        except ffmpeg._run.Error:
+                            # If the conversion failed, ignore it
+                            self.get_logger().info(
+                                "Failed to convert '{0}' to '{1}' format.".format(first_local_url, ff)
+                            )
+                            pass
 
-                # Finally, mark the action as a success
-                goal_handle.succeed()
-            else:
-                # The download failed, log the error message
-                self.get_logger().error(async_download.err_msg)
-                goal_handle.abort()
+                    # Finally, mark the action as a success
+                    goal_handle.succeed()
+                else:
+                    # The download failed, log the error message
+                    self.get_logger().error(async_download.err_msg)
+                    goal_handle.abort()
             else:
                 self.get_logger().error("Zero desired file formats were specified.")
                 goal_handle.abort()
