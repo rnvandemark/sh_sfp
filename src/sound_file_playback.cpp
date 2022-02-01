@@ -47,6 +47,10 @@ SoundFilePlayback::SoundFilePlayback() :
             std::placeholders::_2
         )
     );
+    labeled_audio_characteristics_pub = create_publisher<sh_sfp_interfaces::msg::LabeledAudioCharacteristics>(
+        sh::names::topics::PLAYBACK_AUDIO_CHARACTERISTICS,
+        10
+    );
     playback_update_verbose_pub = create_publisher<sh_sfp_interfaces::msg::PlaybackUpdate>(
         sh::names::topics::PLAYBACK_UPDATES_VERBOSE,
         1
@@ -64,7 +68,7 @@ rclcpp_action::GoalResponse SoundFilePlayback::handle_goal(
 {
     // Process request
     rclcpp_action::GoalResponse rv = rclcpp_action::GoalResponse::REJECT;
-    const std::string url = goal->local_url;
+    const std::string url = goal->labeled_audio_characteristics.local_url;
 
     // Deny request if the file can't be found
     if (!std::filesystem::exists(url))
@@ -98,13 +102,17 @@ void SoundFilePlayback::handle_accepted(const PlaySoundFileGoalHandleSharedPtr g
 
 void SoundFilePlayback::execute(const PlaySoundFileGoalHandleSharedPtr goal_handle)
 {
+    // Immediately publish the labeled audio characteristics
+    const auto labeled_audio_characteristics = goal_handle->get_goal()->labeled_audio_characteristics;
+    labeled_audio_characteristics_pub->publish(labeled_audio_characteristics);
+
     // Declare action feedback and result
     auto playback_feedback = std::make_shared<sh_sfp_interfaces::action::PlaySoundFile::Feedback>();
     auto playback_result = std::make_shared<sh_sfp_interfaces::action::PlaySoundFile::Result>();
     playback_result->was_stopped = false;
 
     // We expect for the specified local file URL to be a WAV file
-    const std::string wav_path = goal_handle->get_goal()->local_url;
+    const std::string wav_path = labeled_audio_characteristics.local_url;
 
     // Load music file from file path
     sf::Music sound;
