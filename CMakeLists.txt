@@ -38,7 +38,7 @@ install(
 
 ament_python_install_package(${PROJECT_NAME})
 install(
-    PROGRAMS scripts/audio_downloader.py
+    PROGRAMS scripts/audio_downloader.py scripts/audio_analyzer.py
     DESTINATION lib/${PROJECT_NAME}
 )
 
