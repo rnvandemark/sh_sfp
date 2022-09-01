@@ -1,3 +1,4 @@
 /**:
     ros__parameters:
         heartbeat_period_ms: 2000
+        sound_file_playback/translator_actor_count: 7

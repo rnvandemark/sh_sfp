@@ -139,6 +139,7 @@ void SoundFilePlayback::execute(const PlaySoundFileGoalHandleSharedPtr goal_hand
 
     // Loop until the sound playback is finished
     sh_sfp_interfaces::msg::PlaybackUpdate playback_update;
+    playback_update.video_id = labeled_audio_characteristics.video_id;
     rclcpp::Time last_sparse_update(0, 0, get_clock()->get_clock_type());
     rclcpp::Rate loop_rate(update_rate_hz);
     bool sf_finished = false;

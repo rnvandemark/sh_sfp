@@ -27,6 +27,13 @@ def generate_launch_description():
     ))
     desc.add_action(Node(
         package="sh_sfp",
+        executable="audio_translator_bar_graph",
+        namespace="/smart_home",
+        parameters=[cfg],
+        on_exit=Shutdown(),
+    ))
+    desc.add_action(Node(
+        package="sh_sfp",
         executable="sound_file_playback",
         namespace="/smart_home",
         parameters=[cfg],
